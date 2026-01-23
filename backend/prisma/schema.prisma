@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  FOUNDER
+  ADMIN
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+  DELETED
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  DELETED
+}
+
+enum NotificationType {
+  COMMENT
+  REPLY
+  LIKE
+  MENTION
+  SYSTEM
+}
+
+enum ActivityType {
+  LOGIN
+  LOGOUT
+  REGISTER
+  CREATE_POST
+  UPDATE_POST
+  DELETE_POST
+  CREATE_COMMENT
+  UPDATE_COMMENT
+  DELETE_COMMENT
+  LIKE_POST
+  UNLIKE_POST
+  CHECK_IN
+  BAN_USER
+  UNBAN_USER
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  username      String     @unique
+  password      String
+  avatar        String?
+  bio           String?    @db.Text
+  role          Role       @default(USER)
+  status        UserStatus @default(ACTIVE)
+  emailVerified Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relations
+  posts         Post[]
+  comments      Comment[]
+  checkIns      CheckIn[]
+  likes         Like[]
+  notifications Notification[]
+  activities    Activity[]
+  sessions      Session[]
+
+  @@index([email])
+  @@index([username])
+  @@index([role])
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  token        String   @unique
+  refreshToken String?  @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Board {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?  @db.Text
+  icon        String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts Post[]
+
+  @@index([slug])
+  @@index([order])
+  @@index([isActive])
+  @@map("boards")
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  title       String
+  content     String     @db.Text
+  excerpt     String?
+  coverImage  String?
+  slug        String?    @unique
+  boardId     String
+  authorId    String
+  status      PostStatus @default(PUBLISHED)
+  isPinned    Boolean    @default(false)
+  isLocked    Boolean    @default(false)
+  viewCount   Int        @default(0)
+  likeCount   Int        @default(0)
+  commentCount Int       @default(0)
+  publishedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  board      Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  author     User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments   Comment[]
+  likes      Like[]
+
+  @@index([boardId])
+  @@index([authorId])
+  @@index([status])
+  @@index([slug])
+  @@index([createdAt])
+  @@index([publishedAt])
+  @@index([isPinned])
+  @@index([boardId, status, createdAt(sort: Desc)])
+  @@map("posts")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  postId    String
+  authorId  String
+  parentId  String?
+  likeCount Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post   Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+  @@index([createdAt])
+  @@index([postId, createdAt(sort: Desc)])
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+  @@index([createdAt])
+  @@map("likes")
+}
+
+model CheckIn {
+  id          String   @id @default(cuid())
+  userId      String
+  content     String?  @db.Text
+  studyHours  Decimal  @default(0) @db.Decimal(5, 2)
+  learnings   Json     // 改为 Json 类型以支持 MySQL
+  checkInDate DateTime @db.Date
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, checkInDate])
+  @@index([userId])
+  @@index([checkInDate])
+  @@index([userId, checkInDate(sort: Desc)])
+  @@map("check_ins")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  content   String           @db.Text
+  data      Json?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model Activity {
+  id          String       @id @default(cuid())
+  userId      String
+  type        ActivityType
+  description String       @db.Text
+  metadata    Json?
+  ipAddress   String?      @db.VarChar(45)
+  userAgent   String?      @db.Text
+  createdAt   DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([type, createdAt(sort: Desc)])
+  @@map("activities")
+}
