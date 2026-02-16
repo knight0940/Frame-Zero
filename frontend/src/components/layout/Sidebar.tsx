@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { FileText, type LucideIcon } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 export interface Board {
@@ -33,6 +34,7 @@ export function Sidebar({
   className,
 }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const pathname = usePathname();
 
   return (
     <div
@@ -76,36 +78,41 @@ export function Sidebar({
       {/* Board List */}
       <nav className="flex-1 overflow-y-auto px-2 py-1">
         <ul className="space-y-0.5">
-          {boards.map((board) => (
-            <li key={board.id}>
-              <button
-                onClick={() => onBoardChange?.(board.slug)}
-                className={cn(
-                  'w-full flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors',
-                  'text-left',
-                  activeBoard === board.slug
-                    ? 'bg-vscode-bg-active text-vscode-text-primary'
-                    : 'text-vscode-text-secondary hover:bg-vscode-bg-hover hover:text-vscode-text-primary'
-                )}
-                title={board.name}
-              >
-                {/* Icon */}
-                <span className="text-lg flex-shrink-0">{board.icon}</span>
+          {boards.map((board) => {
+            const href = `/${board.slug}`;
+            const isActive = pathname === href || activeBoard === board.slug;
 
-                {/* Name */}
-                {!isCollapsed && (
-                  <>
-                    <span className="flex-1 truncate">{board.name}</span>
-                    {board.postsCount !== undefined && board.postsCount > 0 && (
-                      <span className="text-xs text-vscode-text-tertiary">
-                        {board.postsCount}
-                      </span>
-                    )}
-                  </>
-                )}
-              </button>
-            </li>
-          ))}
+            return (
+              <li key={board.id}>
+                <Link
+                  href={href}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors',
+                    'text-left',
+                    isActive
+                      ? 'bg-vscode-bg-active text-vscode-text-primary'
+                      : 'text-vscode-text-secondary hover:bg-vscode-bg-hover hover:text-vscode-text-primary'
+                  )}
+                  title={board.name}
+                >
+                  {/* Icon */}
+                  <span className="text-lg flex-shrink-0">{board.icon}</span>
+
+                  {/* Name */}
+                  {!isCollapsed && (
+                    <>
+                      <span className="flex-1 truncate">{board.name}</span>
+                      {board.postsCount !== undefined && board.postsCount > 0 && (
+                        <span className="text-xs text-vscode-text-tertiary">
+                          {board.postsCount}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 
@@ -113,8 +120,8 @@ export function Sidebar({
       {!isCollapsed && (
         <div className="p-3 border-t border-vscode-border">
           <div className="text-xs text-vscode-text-tertiary">
-            <div>📦 4 个板块</div>
-            <div>📝 0 篇文章</div>
+            <div>📦 {boards.length} 个板块</div>
+            <div>📝 {boards.reduce((sum, b) => sum + (b.postsCount || 0), 0)} 篇文章</div>
           </div>
         </div>
       )}

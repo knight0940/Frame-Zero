@@ -1,18 +1,19 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/auth.store';
+import { Button } from '@/components/ui/button';
 
 interface StatusBarProps {
-  user?: {
-    username: string;
-    role: 'FOUNDER' | 'ADMIN' | 'USER';
-  };
   unreadCount?: number;
   className?: string;
 }
 
-export function StatusBar({ user, unreadCount = 0, className }: StatusBarProps) {
+export function StatusBar({ unreadCount = 0, className }: StatusBarProps) {
+  const { user, isAuthenticated, logout } = useAuthStore();
+
   const currentDate = new Date();
   const dateString = currentDate.toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -31,6 +32,11 @@ export function StatusBar({ user, unreadCount = 0, className }: StatusBarProps) 
       default:
         return '';
     }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = '/';
   };
 
   return (
@@ -73,7 +79,7 @@ export function StatusBar({ user, unreadCount = 0, className }: StatusBarProps) 
           <span>main</span>
         </span>
 
-        {user && (
+        {isAuthenticated && user ? (
           <>
             <span className="flex items-center gap-1.5">
               <span>👤</span>
@@ -84,7 +90,19 @@ export function StatusBar({ user, unreadCount = 0, className }: StatusBarProps) 
                 <span>{getRoleDisplay()}</span>
               </span>
             )}
+            <button
+              onClick={handleLogout}
+              className="text-xs hover:underline"
+            >
+              登出
+            </button>
           </>
+        ) : (
+          <Link href="/auth/login">
+            <Button variant="ghost" size="sm" className="h-5 text-xs">
+              登录
+            </Button>
+          </Link>
         )}
       </div>
     </div>

@@ -1,54 +1,41 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { VSCodeLayout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
-import { FileText } from 'lucide-react';
+import { FileText, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import * as boardsApi from '@/lib/api/boards.service';
+import type { Board } from '@/lib/api/types';
 
 export default function HomePage() {
-  // 模拟帖子数据
-  const posts = [
-    {
-      id: '1',
-      title: '每日打卡-学习Python 10小时',
-      author: 'python_lover',
-      createdAt: '2小时前',
-    },
-    {
-      id: '2',
-      title: '数据结构与算法学习心得',
-      author: 'algo_master',
-      createdAt: '5小时前',
-    },
-    {
-      id: '3',
-      title: '面试准备：前端工程师岗位',
-      author: 'frontend_dev',
-      createdAt: '1天前',
-    },
-    {
-      id: '4',
-      title: '我的第一个React项目',
-      author: 'react_fan',
-      createdAt: '2天前',
-    },
-  ];
+  const [boards, setBoards] = useState<Board[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const boards = [
-    { id: '1', slug: 'check-in', name: '打卡板块', icon: '📅', postsCount: 125 },
-    { id: '2', slug: 'learning', name: '学习分享', icon: '📚', postsCount: 89 },
-    { id: '3', slug: 'career', name: '就业分享', icon: '💼', postsCount: 56 },
-    { id: '4', slug: 'blog', name: '博客广场', icon: '✍️', postsCount: 234 },
-  ];
+  useEffect(() => {
+    loadBoards();
+  }, []);
+
+  const loadBoards = async () => {
+    try {
+      const data = await boardsApi.getBoards();
+      setBoards(data);
+    } catch (error) {
+      console.error('加载板块失败', error);
+      // 使用默认板块
+      setBoards([
+        { id: '1', slug: 'check-in', name: '打卡板块', icon: '📅', postsCount: 0, isActive: true, order: 1, createdAt: '', updatedAt: '', description: null },
+        { id: '2', slug: 'learning', name: '学习分享', icon: '📚', postsCount: 0, isActive: true, order: 2, createdAt: '', updatedAt: '', description: null },
+        { id: '3', slug: 'career', name: '就业分享', icon: '💼', postsCount: 0, isActive: true, order: 3, createdAt: '', updatedAt: '', description: null },
+        { id: '4', slug: 'blog', name: '博客广场', icon: '✍️', postsCount: 0, isActive: true, order: 4, createdAt: '', updatedAt: '', description: null },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <VSCodeLayout
-      user={{
-        username: 'admin',
-        role: 'FOUNDER',
-      }}
-      boards={boards}
-      unreadCount={3}
-    >
+    <VSCodeLayout boards={boards} unreadCount={3}>
       <div className="p-6">
         {/* Welcome Section */}
         <div className="mb-6">
@@ -62,35 +49,60 @@ export default function HomePage() {
 
         {/* Quick Actions */}
         <div className="flex gap-3 mb-6">
-          <Button>今日打卡</Button>
-          <Button variant="secondary">发布文章</Button>
-          <Button variant="secondary">浏览帖子</Button>
+          <Link href="/check-in">
+            <Button>今日打卡</Button>
+          </Link>
+          <Link href="/check-in">
+            <Button variant="secondary">发布文章</Button>
+          </Link>
+          <Link href="/learning">
+            <Button variant="secondary">浏览帖子</Button>
+          </Link>
         </div>
 
-        {/* Recent Posts */}
+        {/* Boards */}
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-vscode-text-primary mb-4">
+            探索板块
+          </h2>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8 text-vscode-text-secondary">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              加载中...
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {boards.map((board) => (
+                <Link
+                  key={board.id}
+                  href={`/${board.slug}`}
+                  className="p-4 bg-vscode-bg-secondary rounded border border-vscode-border hover:border-vscode-accent transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{board.icon}</span>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-vscode-text-primary">
+                        {board.name}
+                      </h3>
+                      <p className="text-xs text-vscode-text-secondary">
+                        {board.postsCount || 0} 篇帖子
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Recent Posts Placeholder */}
         <div>
           <h2 className="text-lg font-semibold text-vscode-text-primary mb-4 flex items-center gap-2">
             <FileText className="w-5 h-5" />
             最新帖子
           </h2>
-          <div className="space-y-2">
-            {posts.map((post) => (
-              <div
-                key={post.id}
-                className="flex items-center gap-3 p-3 rounded hover:bg-vscode-bg-hover cursor-pointer transition-colors group"
-              >
-                <span className="text-vscode-text-tertiary text-lg">📄</span>
-                <span className="flex-1 text-sm text-vscode-text-primary">
-                  {post.title}
-                </span>
-                <span className="text-xs text-vscode-text-tertiary">
-                  {post.author}
-                </span>
-                <span className="text-xs text-vscode-text-tertiary">
-                  {post.createdAt}
-                </span>
-              </div>
-            ))}
+          <div className="p-4 bg-vscode-bg-secondary rounded border border-vscode-border text-sm text-vscode-text-secondary">
+            帖子列表功能开发中...
           </div>
         </div>
 
@@ -101,9 +113,9 @@ export default function HomePage() {
           </h3>
           <ul className="text-xs text-vscode-text-secondary space-y-1">
             <li>• 点击左侧板块图标浏览不同内容</li>
-            <li>• 使用顶部标签页同时打开多个帖子</li>
+            <li>• 每日打卡记录学习进度</li>
             <li>• 在状态栏查看通知和账户信息</li>
-            <li>• 尝试今日打卡，记录学习进度</li>
+            <li>• 分享你的学习经验和心得</li>
           </ul>
         </div>
       </div>

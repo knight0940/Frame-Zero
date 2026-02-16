@@ -78,3 +78,17 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Debug and test scripts
+backend/scripts/test-*.ts
+backend/scripts/check-*.ts
+backend/scripts/create-test-*.ts
+
+# Temporary setup guides (can be deleted)
+DEV_GUIDE.md
+FRONTEND_READY.md
+GETTING_STARTED.md
+MYSQL_MIGRATION.md
+MYSQL_QUICKSTART.md
+SERVICE_START_GUIDE.md
+STARTUP_GUIDE.md

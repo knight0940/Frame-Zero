@@ -1,13 +1,16 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
-  Files,
+  Star,
   Search,
   Calendar,
   Bell,
   User,
   Settings,
+  Home,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,22 +20,39 @@ interface ActivityItem {
   icon: LucideIcon;
   label: string;
   badge?: number;
+  href?: string;
+  paths?: string[]; // 用于匹配多个路径
 }
-
-const activityItems: ActivityItem[] = [
-  { id: 'explorer', icon: Files, label: '板块浏览' },
-  { id: 'search', icon: Search, label: '搜索' },
-  { id: 'check-in', icon: Calendar, label: '打卡' },
-  { id: 'notifications', icon: Bell, label: '通知', badge: 3 },
-  { id: 'account', icon: User, label: '账户' },
-];
 
 interface ActivityBarProps {
   activeItem?: string;
   onActiveChange?: (itemId: string) => void;
+  unreadCount?: number; // 新增：未读通知数量
 }
 
-export function ActivityBar({ activeItem = 'explorer', onActiveChange }: ActivityBarProps) {
+export function ActivityBar({
+  activeItem,
+  onActiveChange,
+  unreadCount = 0
+}: ActivityBarProps) {
+  const pathname = usePathname();
+
+  const activityItems: ActivityItem[] = [
+    { id: 'home', icon: Home, label: '首页', href: '/', paths: ['/'] },
+    { id: 'favorites', icon: Star, label: '收藏', href: '/favorites' },
+    { id: 'search', icon: Search, label: '搜索', href: '/search' },
+    { id: 'notifications', icon: Bell, label: '通知', href: '/notifications', badge: unreadCount },
+    { id: 'account', icon: User, label: '账户', href: '/settings/profile' },
+  ];
+
+  // 判断当前按钮是否激活
+  const isActive = (item: ActivityItem) => {
+    if (item.paths) {
+      return item.paths.some(path => pathname === path || pathname.startsWith(path + '/'));
+    }
+    return pathname === item.href;
+  };
+
   return (
     <div className="w-12 bg-vscode-bg-secondary flex flex-col items-center py-2 border-r border-vscode-border">
       {/* Logo */}
@@ -44,21 +64,10 @@ export function ActivityBar({ activeItem = 'explorer', onActiveChange }: Activit
       <div className="flex flex-col gap-1 flex-1">
         {activityItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeItem === item.id;
+          const active = isActive(item);
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => onActiveChange?.(item.id)}
-              className={cn(
-                'relative w-10 h-10 flex items-center justify-center rounded-md transition-colors',
-                'group',
-                isActive
-                  ? 'bg-vscode-bg-active text-vscode-text-primary'
-                  : 'text-vscode-text-tertiary hover:bg-vscode-bg-hover hover:text-vscode-text-primary'
-              )}
-              title={item.label}
-            >
+          const buttonContent = (
+            <>
               <Icon className="w-5 h-5" />
 
               {/* Badge */}
@@ -67,14 +76,49 @@ export function ActivityBar({ activeItem = 'explorer', onActiveChange }: Activit
                   {item.badge > 99 ? '99+' : item.badge}
                 </span>
               )}
-            </button>
+            </>
+          );
+
+          return (
+            <div key={item.id} className="relative">
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  className={cn(
+                    'relative w-10 h-10 flex items-center justify-center rounded-md transition-colors',
+                    'group',
+                    active
+                      ? 'bg-vscode-bg-active text-vscode-text-primary'
+                      : 'text-vscode-text-tertiary hover:bg-vscode-bg-hover hover:text-vscode-text-primary'
+                  )}
+                  title={item.label}
+                >
+                  {buttonContent}
+                </Link>
+              ) : (
+                <button
+                  onClick={() => onActiveChange?.(item.id)}
+                  className={cn(
+                    'relative w-10 h-10 flex items-center justify-center rounded-md transition-colors',
+                    'group',
+                    active
+                      ? 'bg-vscode-bg-active text-vscode-text-primary'
+                      : 'text-vscode-text-tertiary hover:bg-vscode-bg-hover hover:text-vscode-text-primary'
+                  )}
+                  title={item.label}
+                >
+                  {buttonContent}
+                </button>
+              )}
+            </div>
           );
         })}
       </div>
 
       {/* Bottom Settings */}
       <div className="mt-auto">
-        <button
+        <Link
+          href="/settings/profile"
           className={cn(
             'w-10 h-10 flex items-center justify-center rounded-md transition-colors',
             'text-vscode-text-tertiary hover:bg-vscode-bg-hover hover:text-vscode-text-primary'
@@ -82,7 +126,7 @@ export function ActivityBar({ activeItem = 'explorer', onActiveChange }: Activit
           title="设置"
         >
           <Settings className="w-5 h-5" />
-        </button>
+        </Link>
       </div>
     </div>
   );

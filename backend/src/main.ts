@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -25,6 +26,9 @@ async function bootstrap() {
       },
     }),
   );
+
+  // 全局响应拦截器
+  app.useGlobalInterceptors(new TransformInterceptor());
 
   const port = process.env.PORT || 3001;
   await app.listen(port);

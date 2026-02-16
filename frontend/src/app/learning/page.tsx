@@ -1,38 +1,34 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { VSCodeLayout } from '@/components/layout';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Plus } from 'lucide-react';
+import { BookOpen, Plus, Loader2 } from 'lucide-react';
+import * as postsApi from '@/lib/api/posts.service';
+import type { Post } from '@/lib/api/types';
 
 export default function LearningPage() {
-  const posts = [
-    {
-      id: '1',
-      title: 'React 18新特性详解',
-      excerpt: 'React 18带来了并发渲染、自动批处理等新特性...',
-      author: 'react_expert',
-      likes: 89,
-      comments: 25,
-      createdAt: '3小时前',
-    },
-    {
-      id: '2',
-      title: 'Python爬虫入门教程',
-      excerpt: '从零开始学习Python爬虫，包含requests、beautifulsoup等库的使用...',
-      author: 'python_master',
-      likes: 156,
-      comments: 42,
-      createdAt: '1天前',
-    },
-  ];
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadPosts();
+  }, []);
+
+  const loadPosts = async () => {
+    try {
+      // 获取学习分享板块的帖子
+      const response = await postsApi.getPosts({ boardId: '2' }); // 学习板块ID
+      setPosts(response.data);
+    } catch (error) {
+      console.error('加载帖子失败', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <VSCodeLayout
-      user={{
-        username: 'admin',
-        role: 'FOUNDER',
-      }}
-    >
+    <VSCodeLayout>
       <div className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -54,35 +50,42 @@ export default function LearningPage() {
         </div>
 
         {/* Posts List */}
-        <div className="space-y-3">
-          {posts.map((post) => (
-            <div
-              key={post.id}
-              className="p-4 bg-vscode-bg-secondary rounded border border-vscode-border hover:border-vscode-accent cursor-pointer transition-colors group"
-            >
-              <div className="flex items-start gap-4">
-                <span className="text-2xl">📄</span>
-                <div className="flex-1">
-                  <h3 className="text-base font-semibold text-vscode-text-primary mb-2 group-hover:text-vscode-accent">
-                    {post.title}
-                  </h3>
-                  <p className="text-sm text-vscode-text-secondary mb-3 line-clamp-2">
-                    {post.excerpt}
-                  </p>
-                  <div className="flex items-center gap-4 text-xs text-vscode-text-tertiary">
-                    <span>{post.author}</span>
-                    <span>❤️ {post.likes}</span>
-                    <span>💬 {post.comments}</span>
-                    <span>{post.createdAt}</span>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12 text-vscode-text-secondary">
+            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+            加载中...
+          </div>
+        ) : posts.length > 0 ? (
+          <div className="space-y-3">
+            {posts.map((post) => (
+              <div
+                key={post.id}
+                className="p-4 bg-vscode-bg-secondary rounded border border-vscode-border hover:border-vscode-accent cursor-pointer transition-colors group"
+              >
+                <div className="flex items-start gap-4">
+                  <span className="text-2xl">📄</span>
+                  <div className="flex-1">
+                    <h3 className="text-base font-semibold text-vscode-text-primary mb-2 group-hover:text-vscode-accent">
+                      {post.title}
+                    </h3>
+                    {post.excerpt && (
+                      <p className="text-sm text-vscode-text-secondary mb-3 line-clamp-2">
+                        {post.excerpt}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-4 text-xs text-vscode-text-tertiary">
+                      <span>{post.author?.username || '匿名'}</span>
+                      <span>❤️ {post.likeCount}</span>
+                      <span>💬 {post.commentCount}</span>
+                      <span>{new Date(post.createdAt).toLocaleDateString('zh-CN')}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {posts.length === 0 && (
+            ))}
+          </div>
+        ) : (
+          /* Empty State */
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 mx-auto text-vscode-text-tertiary mb-4" />
             <p className="text-vscode-text-secondary mb-4">
